@@ -19,10 +19,15 @@ async function loadNtv(){
   // En ese caso extraemos únicamente el texto del pasaje.
   if(/<!doctype html|<html|<div[^>]+id=["']bibletext/i.test(raw)){
    const parsed=new DOMParser().parseFromString(raw,"text/html");
-   const passage=parsed.querySelector("#bibletext .verse_export") || parsed.querySelector("#bibletext");
+   // verse_export es el nombre de la etiqueta HTML, no una clase.
+   const passage=parsed.querySelector("#bibletext verse_export") || parsed.querySelector("#bibletext [orig]");
    if(!passage) return;
-   text=passage.textContent.replace(/\s+/g," ").trim();
-   text=text.replace(/^\d+\s*/,"").trim();
+   const paragraphs=Array.from(passage.querySelectorAll("p"));
+   if(paragraphs.length){
+    text=paragraphs.map((p,i)=>p.textContent.replace(i===0?/^\s*\d+\s*/:/^\s*/,"").trim()).filter(Boolean).join(" ");
+   }else{
+    text=passage.textContent.replace(/^\s*\d+\s*/,"").replace(/\s+/g," ").trim();
+   }
   }
   if(!text || text.startsWith("DIAGNÓSTICO:") || text.startsWith("{")) return;
   displayedText=text;
