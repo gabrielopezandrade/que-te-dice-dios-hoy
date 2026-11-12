@@ -13,7 +13,7 @@ export default async (request) => {
   const key = process.env.TYNDALE_API_KEY;
 
   if (!key) {
-    return new Response("Falta configurar TYNDALE_API_KEY en Netlify", {
+    return new Response("Falta configurar TYNDALE_API_KEY", {
       status: 500,
       headers: { "content-type": "text/plain; charset=utf-8" }
     });
@@ -30,16 +30,27 @@ export default async (request) => {
     });
 
     const body = await upstream.text();
+    const contentType = upstream.headers.get("content-type") || "(vacío)";
+
+    if (!body.trim()) {
+      return new Response(
+        `Tyndale devolvió una respuesta vacía. HTTP: ${upstream.status}. Content-Type: ${contentType}.`,
+        {
+          status: 502,
+          headers: { "content-type": "text/plain; charset=utf-8" }
+        }
+      );
+    }
 
     return new Response(body, {
       status: upstream.status,
       headers: {
-        "content-type": upstream.headers.get("content-type") || "text/html; charset=utf-8",
+        "content-type": contentType,
         "cache-control": "no-store"
       }
     });
   } catch (error) {
-    return new Response("No se pudo conectar con el servicio de la NTV", {
+    return new Response("Error al conectar con Tyndale", {
       status: 502,
       headers: { "content-type": "text/plain; charset=utf-8" }
     });
