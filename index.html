@@ -12,7 +12,18 @@ async function loadNtv(){
  try{
   const response=await fetch("https://courageous-heliotrope-ab19a7.netlify.app/.netlify/functions/ntv?ref="+encodeURIComponent(apiRef),{headers:{"Accept":"text/plain"}});
   if(!response.ok) return;
-  const text=(await response.text()).trim();
+  const raw=(await response.text()).trim();
+  if(!raw || raw.startsWith("DIAGNÓSTICO:") || raw.startsWith("{")) return;
+  let text=raw;
+  // La API NTV puede responder con un documento HTML completo.
+  // En ese caso extraemos únicamente el texto del pasaje.
+  if(/<!doctype html|<html|<div[^>]+id=["']bibletext/i.test(raw)){
+   const parsed=new DOMParser().parseFromString(raw,"text/html");
+   const passage=parsed.querySelector("#bibletext .verse_export") || parsed.querySelector("#bibletext");
+   if(!passage) return;
+   text=passage.textContent.replace(/\s+/g," ").trim();
+   text=text.replace(/^\d+\s*/,"").trim();
+  }
   if(!text || text.startsWith("DIAGNÓSTICO:") || text.startsWith("{")) return;
   displayedText=text;
   document.getElementById("message").textContent=text;
